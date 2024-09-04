@@ -29,7 +29,7 @@ app.post('/webhook/magento-product-update', async (req, res) => {
 
     // Update or upsert product in Typesense
     const typesenseResponse = await typesenseClient.collections('staging_CA_v1').documents().upsert({
-      id: productData.id,  // Assuming Magento sends the product ID
+      id: productData.sku,  // Assuming Magento sends the product ID
       price: productData.price,
    
     });
