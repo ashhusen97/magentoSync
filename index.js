@@ -28,11 +28,16 @@ app.post('/webhook/magento-product-update', async (req, res) => {
     const productData = req.body;  // Assuming Magento sends product data in the webhook payload
 
     // Update or upsert product in Typesense
-    const typesenseResponse = await typesenseClient.collections('staging_CA_v1').documents().upsert({
-      id: productData.sku,  // Assuming Magento sends the product ID
-      price: productData.price,
-   
-    });
+    // const typesenseResponse = await typesenseClient.collections('staging_CA_v1').documents().upsert();
+
+    const typesenseResponse =   await stagingClient
+    .collections("staging_CA_v1")
+    .documents()
+    .import({
+        id: productData.id,  // Assuming Magento sends the product ID
+        price: productData.price,
+     
+      }, { action: "update" });
 
     console.log('Product synced with Typesense:', typesenseResponse);
 
