@@ -25,6 +25,7 @@ let typesenseClient = new Typesense.Client({
 // Webhook endpoint to receive product updates from Magento
 app.post('/webhook/magento-product-update', async (req, res) => {
   try {
+    console.log(req.body)
     const productData = req.body;  // Assuming Magento sends product data in the webhook payload
 
     // Update or upsert product in Typesense
