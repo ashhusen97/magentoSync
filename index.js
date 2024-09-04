@@ -31,7 +31,7 @@ app.post('/webhook/magento-product-update', async (req, res) => {
     // Update or upsert product in Typesense
     // const typesenseResponse = await typesenseClient.collections('staging_CA_v1').documents().upsert();
 
-    const typesenseResponse =   await stagingClient
+    const typesenseResponse =   await typesenseClient
     .collections("staging_CA_v1")
     .documents()
     .import({
