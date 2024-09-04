@@ -40,7 +40,7 @@ app.post('/webhook/magento-product-update', async (req, res) => {
     res.status(200).send('Webhook received and processed');
   } catch (error) {
     console.error('Error processing webhook:', error);
-    res.status(500).send('Error processing webhook');
+    res.status(500).send('Error processing webhook',error);
   }
 });
 
