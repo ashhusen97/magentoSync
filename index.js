@@ -74,6 +74,7 @@ app.post("/webhook/magento-product-update", async (req, res) => {
           ships_in_days: productData.ships_in_days,
           special_from_date: productData.special_from_date,
           special_to_date: productData.special_to_date,
+          special_price: productData.special_price,
           status: productData.status,
           taxable: productData.taxable,
           temperature: productData.temperature,
@@ -89,7 +90,7 @@ app.post("/webhook/magento-product-update", async (req, res) => {
           case_quantity: productData.case_quantity,
           brand: productData.brand,
           new_arrivals_expiry_date: productData.new_arrivals_expiry_date,
-          flags: updatedFlags,
+          flags: productData?.flags,
         },
         { action: "update" }
       );
