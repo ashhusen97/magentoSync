@@ -21,39 +21,25 @@ let typesenseClient = new Typesense.Client({
   apiKey: "vFWSoLHDWdbfnxVMu0D8Cf3d8LEqGetjFLr9fMT8Od2066NY",
   connectionTimeoutSeconds: 100,
 });
-const updateMagAttributesSimple = (body) => {
-  let updatedMagAttributes = [];
+const updateMagAttributesSimple = async (productId, body) => {
+  const existingProduct = await typesenseClient
+    .collections("staging_CA_v2")
+    .documents(productId)
+    .retrieve();
 
-  // Check for each field and update mag_attributes accordingly
-  if (body.new_arrivals) {
-    updatedMagAttributes.push({
-      attribute_code: "new_arrivals",
-      value: body.new_arrivals,
-    });
-  }
-
-  if (body.description) {
-    updatedMagAttributes.push({
-      attribute_code: "description",
-      value: body.description,
-    });
-  }
-
-  if (body.meta_title) {
-    updatedMagAttributes.push({
-      attribute_code: "meta_title",
-      value: body.meta_title,
-    });
-  }
-
-  if (body.liquidation) {
-    updatedMagAttributes.push({
-      attribute_code: "liquidation",
-      value: body.liquidation,
-    });
-  }
-
-  return updatedMagAttributes;
+  // 2. Get the existing mag_attributes
+  // 3. Update the mag_attributes by checking the attribute_code
+  const updatedMagAttributes = existingMagAttributes.map((attr) => {
+    if (attr.attribute_code === "new_arrivals" && body.new_arrivals) {
+      return { attribute_code: "new_arrivals", value: body.new_arrivals };
+    } else if (attr.attribute_code === "description" && body.description) {
+      return { attribute_code: "description", value: body.description };
+    } else if (attr.attribute_code === "meta_title" && body.meta_title) {
+      return { attribute_code: "meta_title", value: body.meta_title };
+    }
+    // Keep other attributes unchanged
+    return attr;
+  });
 };
 
 // Webhook endpoint to receive product updates from Magento
@@ -61,10 +47,18 @@ app.post("/webhook/magento-product-update", async (req, res) => {
   try {
     console.log(req.body);
     const productData = req.body; // Assuming Magento sends product data in the webhook payload
+    const existingProduct = await typesenseClient
+      .collections("staging_CA_v2")
+      .documents(productData.id)
+      .retrieve();
 
-    // Update or upsert product in Typesense
-    // const typesenseResponse = await typesenseClient.collections('staging_CA_v1').documents().upsert();
-    const updatedMagAttributes = updateMagAttributesSimple(productData);
+    // 2. Get the existing flags array
+    // 2. Get the existing flags array
+    let existingFlags = existingProduct.flags || [];
+
+    // 3. Merge the new flags into the existing flags, ensuring no duplicates
+    let updatedFlags = [...new Set([...existingFlags, ...productData.flags])];
+
     const typesenseResponse = await typesenseClient
       .collections("staging_CA_v2")
       .documents()
@@ -95,7 +89,7 @@ app.post("/webhook/magento-product-update", async (req, res) => {
           case_quantity: productData.case_quantity,
           brand: productData.brand,
           new_arrivals_expiry_date: productData.new_arrivals_expiry_date,
-          mag_attributes: updatedMagAttributes,
+          flags: updatedFlags,
         },
         { action: "update" }
       );
