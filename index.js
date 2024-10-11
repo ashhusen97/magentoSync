@@ -52,12 +52,25 @@ app.post("/webhook/magento-product-update", async (req, res) => {
       .documents(productData.id)
       .retrieve();
 
-    // 2. Get the existing flags array
-    // 2. Get the existing flags array
-    let existingFlags = existingProduct.flags || [];
+    // 2. Get the existing mag_attributes array
+    let existingMagAttributes = existingProduct.mag_attributes || [];
+    if (productData?.mag_attributes) {
+      productData?.mag_attributes?.forEach((newAttr) => {
+        const index = existingMagAttributes.findIndex(
+          (attr) => attr.attribute_code === newAttr.attribute_code
+        );
+        console.log(index);
+        if (index !== -1) {
+          // Update the existing attribute
+          existingMagAttributes[index].value = newAttr.value;
+        } else {
+          // Add new attribute if it doesn't exist
+          existingMagAttributes.push(newAttr);
+        }
+      });
 
-    // 3. Merge the new flags into the existing flags, ensuring no duplicates
-    let updatedFlags = [...new Set([...existingFlags, ...productData.flags])];
+      console.log(existingMagAttributes);
+    }
 
     const typesenseResponse = await typesenseClient
       .collections("staging_CA_v2")
@@ -92,6 +105,7 @@ app.post("/webhook/magento-product-update", async (req, res) => {
           new_arrivals_expiry_date: productData.new_arrivals_expiry_date,
           liquidation_expiry_date: productData.liquidation_expiry_date,
           flags: productData?.flags,
+          mag_attributes: existingMagAttributes,
         },
         { action: "update" }
       );
