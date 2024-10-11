@@ -90,6 +90,7 @@ app.post("/webhook/magento-product-update", async (req, res) => {
           case_quantity: productData.case_quantity,
           brand: productData.brand,
           new_arrivals_expiry_date: productData.new_arrivals_expiry_date,
+          liquidation_expiry_date: productData.liquidation_expiry_date,
           flags: productData?.flags,
         },
         { action: "update" }
