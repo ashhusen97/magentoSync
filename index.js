@@ -109,6 +109,12 @@ app.post("/webhook/magento-product-update", async (req, res) => {
           new_arrivals_expiry_date: productData.new_arrivals_expiry_date,
           liquidation_expiry_date: productData.liquidation_expiry_date,
           flags: productData?.flags,
+          weight: +productData?.weight,
+          weight_unit: productData?.weight_unit,
+          length: +productData?.length,
+          width: +productData?.width,
+          height: +productData?.height,
+          product_life: +productData?.product_life,
           mag_attributes: existingMagAttributes,
         },
         { action: "update" }
