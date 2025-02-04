@@ -671,7 +671,10 @@ app.post("/process-skus", async (req, res) => {
       return res.status(400).json({ error: "Invalid or empty SKUs array" });
     }
 
-    res.status(200).json({ message: "SKUs processing started successfully." });
+    res
+      .status(200)
+      .json({ message: "SKUs processing started successfully.==>" + skus });
+    return;
     parseAndPopulateCSV(skus);
 
     // console.log(skus);
