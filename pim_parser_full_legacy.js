@@ -674,7 +674,7 @@ app.post("/process-skus", async (req, res) => {
     res
       .status(200)
       .json({ message: "SKUs processing started successfully.==>" + skus });
-    return;
+    // return;
     parseAndPopulateCSV(skus);
 
     // console.log(skus);
