@@ -4,6 +4,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
 const PORT = 3000;
+const fs = require("fs");
+const path = require("path");
+
 // Middleware to parse JSON request body
 app.use(bodyParser.json());
 const DOC_REPO = "products_en-US_v8";
@@ -166,6 +169,23 @@ const parseAndPopulateCSV = async (skuArray) => {
 let counter = 0;
 const count = () => counter++;
 
+function logToFile(message) {
+  const logDir = path.join(__dirname, "logs");
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir); // Create logs directory if not exists
+  }
+
+  const logFile = path.join(
+    logDir,
+    `${new Date().toISOString().split("T")[0]}.log`
+  );
+  const timestamp = new Date().toISOString();
+
+  const logMessage = `[${timestamp}] ${message}\n`;
+
+  fs.appendFileSync(logFile, logMessage, "utf8"); // Append log to file
+}
+
 const processRows = async (rows, start, end) => {
   const ids = [];
   let documents = [];
@@ -219,56 +239,57 @@ const processRows = async (rows, start, end) => {
     );
     documents.push(doc);
     ids.push(sku);
-    console.log(documents);
-    if (i % 100 === 0) {
-      try {
-        const res = await typesense
-          .collections(DOC_REPO)
-          .documents()
-          .import(documents, {
-            action: "update",
-            dirty_values: "coerce_or_drop",
-          });
-        // console.log(documents);
-        console.log(res);
-      } catch (err) {
-        console.log(err);
-      }
-      if (inactive_documents.length > 0) {
-        // @TEMP 7/6/2024
-        try {
-          const res_inactive = await typesense
-            .collections(DOC_REPO)
-            .documents()
-            .import(inactive_documents, { action: "update" });
-          console.log("MADE INACTIVES: " + inactive_documents.length);
-          console.log(res_inactive);
-        } catch (err) {
-          console.log(err);
-        }
-        // @TEMP 7/6/2024
-      }
-      documents = [];
-      inactive_documents = [];
-    }
+
+    // if (i % 100 === 0) {
+    //   try {
+    //     const res = await typesense
+    //       .collections(DOC_REPO)
+    //       .documents()
+    //       .import(documents, {
+    //         action: "update",
+    //         dirty_values: "coerce_or_drop",
+    //       });
+    //     // console.log(documents);
+    //     console.log("typesense resp", res);
+    //   } catch (err) {
+    //     console.log("cxvxcvxcv", err);
+    //   }
+    //   if (inactive_documents.length > 0) {
+    //     // @TEMP 7/6/2024
+    //     try {
+    //       const res_inactive = await typesense
+    //         .collections(DOC_REPO)
+    //         .documents()
+    //         .import(inactive_documents, { action: "update" });
+    //       console.log("MADE INACTIVES: " + inactive_documents.length);
+    //       console.log(res_inactive);
+    //     } catch (err) {
+    //       console.log("cxvxcvxcv222", err);
+    //     }
+    //     // @TEMP 7/6/2024
+    //   }
+    //   documents = [];
+    //   inactive_documents = [];
+    // }
     // if (start === 160000)
-    let c = count();
-    printProgress(
-      `inserting item ${c} of ${rows.length} ${(
-        (c / rows.length) *
-        100
-      ).toFixed(3)}%`
-    );
+
     // }
   }
+
   try {
     const res = await typesense
       .collections(DOC_REPO)
       .documents()
       .import(documents, { action: "update", dirty_values: "coerce_or_drop" });
-    console.log(res);
+    console.log("typesense response", res);
+    logToFile(
+      `SUCCESS: Uploaded ${
+        documents.length
+      } documents to Typesense \n\n\n, ${JSON.stringify(documents)}`
+    );
   } catch (e) {
-    console.log(e);
+    logToFile(`ERROR: Failed to upload documents - ${e.message}`);
+    console.log("typesense upload error", e);
   }
   if (inactive_documents.length > 0) {
     // @TEMP 7/6/2024
