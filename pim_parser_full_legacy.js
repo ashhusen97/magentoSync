@@ -32,11 +32,10 @@ const getGQProduct = async (id) => {
   const endpoint = "https://www.foodservicedirect.com/graphql";
   const headers = {
     "content-type": "application/json",
-    Authorization: "bearer " + MAG_TOKEN,
   };
   const graphqlQuery = {
     query: `{
-      products :product_details(skus_comma_separated:"${id}"){
+      products :product_details(skus_comma_separated:"${id},${Date.now()}"){
             sku
             vendor_id
             image
@@ -65,7 +64,6 @@ const getGQProduct = async (id) => {
           }
         }`,
   };
-
   const response = await axios({
     url: endpoint,
     method: "post",
@@ -152,6 +150,29 @@ const getConfigData = async (id) => {
   return configData;
 };
 
+const postCatalogRule = async (entity_id) => {
+  const headers = {
+    Accept: "*/*",
+    "Content-Type": "application/json",
+  };
+
+  const bodyContent = {
+    product_ids: [entity_id],
+  };
+
+  try {
+    const response = await axios.post(
+      "https://foodservicedirect.com/rest/V1/fsd/catalog_rule/price",
+      bodyContent,
+      { headers: headers }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error:", error);
+  }
+};
+
 const parseAndPopulateCSV = async (skuArray) => {
   if (!Array.isArray(skuArray) || skuArray.length === 0) {
     console.log("No SKUs provided.");
@@ -200,16 +221,19 @@ const processRows = async (rows, start, end) => {
     let mag_brand_info = {};
     let configData = {};
     let gq_product = {};
+    let mag_catalog_rule_price = [];
     try {
       mag_product = await getMagProduct(sku);
       mag_product_fsd = await getMagProductFSD(sku);
       mag_product_info = await getMagProducInfo(sku);
       mag_brand_info = await getBrandInfo(sku);
+      mag_catalog_rule_price = await postCatalogRule(mag_product_fsd.entity_id);
       if (mag_product_fsd.product_type === "configurable") {
         configData = await getConfigData(mag_product_fsd.sku);
       }
 
       gq_product = await getGQProduct(sku);
+      console.log(JSON.stringify(gq_product));
     } catch (err) {
       console.log(err);
       // try {
@@ -235,7 +259,8 @@ const processRows = async (rows, start, end) => {
       mag_product_info,
       mag_brand_info,
       configData,
-      gq_product
+      gq_product,
+      mag_catalog_rule_price
     );
     documents.push(doc);
     ids.push(sku);
@@ -432,7 +457,7 @@ const convertToDoc = async (
     },
 
     bulk_each: configData?.swatch_information?.bulk_each || null,
-
+    catalog_rule_price: mag_catalog_rule_price,
     configAttributes:
       cleanConfigAttributes(configData?.swatch_information?.attributes) || null,
     cost: 0,
