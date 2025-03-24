@@ -402,6 +402,13 @@ const convertToDoc = async (
       String(gq.name).toLocaleLowerCase().indexOf("kitch 24/7") !== -1;
     const is_ufs = manufacturer?.toLocaleLowerCase().indexOf("unilever") !== -1;
 
+    const current_price = getCurrentPrice({
+      special_price: Number(gq.mp_special_price || mag.price),
+      special_from_date: gq.mp_special_from_date || "",
+      special_to_date: gq.mp_special_to_date || "",
+      price: Number(mag.price),
+    });
+
     const mag_attributes = [...mag.custom_attributes];
     for (var prop in gq || {}) {
       if (gq?.hasOwnProperty(prop)) {
@@ -519,9 +526,9 @@ const convertToDoc = async (
         String(magfsd?.shipping_type) || String(gq.shipping_type) || "",
       sku: sku,
       slug: String(gq.url).substring(Math.min(34, String(gq.url).length)),
-
       source: "pim",
-      special_price: gq.mp_special_price || Number(magfsd.price),
+      sort_price: current_price,
+      special_price: current_price,
       special_from_date: gq.mp_special_from_date || "",
       special_to_date: gq.mp_special_to_date || "",
       status: gq.is_in_stock ? "In Stock" : "Out Of Stock",
@@ -566,6 +573,50 @@ const convertToDoc = async (
     return doc;
   } catch (er) {
     console.log("Error LOG", er);
+  }
+};
+
+const getCurrentPrice = ({
+  special_price,
+  special_from_date,
+  special_to_date,
+  price,
+}) => {
+  let todayDate = new Date().toISOString().split("T")[0];
+  const specialPrice = Number(special_price);
+  const originalPrice = Number(price);
+
+  if (specialPrice == null) {
+    return originalPrice; // show price if special price null
+  } else if (specialPrice && specialPrice >= originalPrice) {
+    return originalPrice;
+  } // show original price if special price is greater
+  else if (
+    specialPrice &&
+    (!special_from_date || special_from_date === "") &&
+    (!special_to_date || special_to_date === "")
+  ) {
+    return specialPrice; // always show special price
+  } else if (
+    specialPrice &&
+    todayDate >= special_from_date &&
+    todayDate <= special_to_date
+  ) {
+    return specialPrice; // special price show according to date
+  } else if (
+    specialPrice &&
+    todayDate >= special_from_date &&
+    special_to_date == null
+  ) {
+    return specialPrice; // special_to_date is null
+  } else if (
+    specialPrice &&
+    special_from_date == null &&
+    todayDate <= special_to_date
+  ) {
+    return specialPrice; // special_from_date is null
+  } else {
+    return originalPrice;
   }
 };
 
