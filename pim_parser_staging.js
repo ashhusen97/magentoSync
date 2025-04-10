@@ -9,7 +9,7 @@ const path = require("path");
 
 // Middleware to parse JSON request body
 app.use(bodyParser.json());
-const DOC_REPO = "products_en-US_v8";
+const DOC_REPO = "products_en-US_stage_v2";
 const MAG_TOKEN = "j0l7it2zcd7u2c91qtli4tcwy8o1kvpl";
 const TYPESENSE_CONFIG = {
   nodes: [
