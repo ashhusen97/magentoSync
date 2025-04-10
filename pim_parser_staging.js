@@ -633,7 +633,7 @@ const getCurrentPrice = ({
 // setTimeout(() => addAdditionalFlags(), 120 * 60 * 1000);
 
 // API Endpoint to receive SKUs and process them
-app.post("/process-skus", async (req, res) => {
+app.post("/process-skus-staging", async (req, res) => {
   try {
     const { skus } = req.body; // Expecting { skus: ["sku1", "sku2", "sku3", ...] }
 
