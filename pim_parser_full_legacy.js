@@ -9,7 +9,7 @@ const path = require("path");
 
 // Middleware to parse JSON request body
 app.use(bodyParser.json());
-const DOC_REPO = "products_en-US_v8";
+let DOC_REPO = "products_en-US_v8";
 const MAG_TOKEN = "j0l7it2zcd7u2c91qtli4tcwy8o1kvpl";
 const TYPESENSE_CONFIG = {
   nodes: [
@@ -185,6 +185,7 @@ const parseAndPopulateCSV = async (skuArray) => {
     await processRows(skuArray, start, Math.min(start + 1200, skuArray.length));
   }
 
+  console.log("first", DOC_REPO);
   console.log("All SKUs processed successfully.");
 };
 
@@ -654,6 +655,27 @@ app.post("/process-skus", async (req, res) => {
   }
 });
 
+app.post("/process-skus-staging", async (req, res) => {
+  try {
+    DOC_REPO = "products_en-US_stage_v2";
+    const { skus } = req.body; // Expecting { skus: ["sku1", "sku2", "sku3", ...] }
+
+    if (!skus || !Array.isArray(skus) || skus.length === 0) {
+      return res.status(400).json({ error: "Invalid or empty SKUs array" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "SKUs processing started successfully.==>" + skus });
+    // return;
+    parseAndPopulateCSV(skus);
+
+    // console.log(skus);
+  } catch (error) {
+    console.error("Error processing SKUs:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`);
