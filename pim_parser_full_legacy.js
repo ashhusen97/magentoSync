@@ -25,17 +25,19 @@ const TYPESENSE_CONFIG = {
 
 const typesense = new Typesense.Client(TYPESENSE_CONFIG);
 
+let MAGENTO_DOMAIN = "www.foodservicedirect.com"; //"migration.foodservicedirect.us"; //"mcstaging4.foodservicedirect.com";
 const sales_data = [];
 let sales_data_status = "";
-
 const getGQProduct = async (id) => {
-  const endpoint = "https://www.foodservicedirect.com/graphql";
+  const endpoint = `https://${MAGENTO_DOMAIN}/graphql`;
+  console.log(endpoint);
   const headers = {
     "content-type": "application/json",
+    Authorization: "bearer " + MAG_TOKEN,
   };
   const graphqlQuery = {
     query: `{
-      products :product_details(skus_comma_separated:"${id},${Date.now()}"){
+      products :product_details(skus_comma_separated:"${id}"){
             sku
             vendor_id
             image
@@ -64,6 +66,7 @@ const getGQProduct = async (id) => {
           }
         }`,
   };
+
   const response = await axios({
     url: endpoint,
     method: "post",
@@ -80,7 +83,7 @@ const getMagProduct = async (id) => {
     headers: { Authorization: "bearer " + MAG_TOKEN },
   };
   const response = await axios.get(
-    `https://www.foodservicedirect.com/rest/default/V1/products/${id}`,
+    `https://${MAGENTO_DOMAIN}/rest/default/V1/products/${id}`,
     config
   );
   const product = response.data;
@@ -93,7 +96,7 @@ const getMagProductFSD = async (id) => {
     headers: { Authorization: "bearer " + MAG_TOKEN },
   };
   const response = await axios.get(
-    `https://www.foodservicedirect.com/rest/V1/fsd/product/${id}`,
+    `https://${MAGENTO_DOMAIN}/rest/V1/fsd/product/${id}`,
     config
   );
   const product = response.data[0];
@@ -106,7 +109,7 @@ const getMagProducInfo = async (id) => {
     headers: { Authorization: "bearer " + MAG_TOKEN },
   };
   const response = await axios.get(
-    `https://www.foodservicedirect.com/rest/V1/fsd/product-information/${id}/simple`,
+    `https://${MAGENTO_DOMAIN}/rest/V1/fsd/product-information/${id}/simple`,
     config
   );
   const product = response.data;
@@ -125,7 +128,7 @@ const getBrandInfo = async (id) => {
       vendor_id: "5",
     };
     const response = await axios.post(
-      `https://www.foodservicedirect.com/rest/V1/get-brand-info`,
+      `https://${MAGENTO_DOMAIN}/rest/V1/get-brand-info`,
       data,
       config
     );
@@ -142,7 +145,7 @@ const getConfigData = async (id) => {
     headers: { Authorization: "bearer " + MAG_TOKEN },
   };
   const response = await axios.get(
-    `https://foodservicedirect.com/rest/V1/fsd/product-configurable/${id}`,
+    `https://${MAGENTO_DOMAIN}/rest/V1/fsd/product-configurable/${id}`,
     config
   );
   const configData = response.data[0] || {};
@@ -150,6 +153,7 @@ const getConfigData = async (id) => {
   return configData;
 };
 
+// Code to populate catalog price
 const postCatalogRule = async (entity_id) => {
   const headers = {
     Accept: "*/*",
@@ -162,7 +166,7 @@ const postCatalogRule = async (entity_id) => {
 
   try {
     const response = await axios.post(
-      "https://foodservicedirect.com/rest/V1/fsd/catalog_rule/price",
+      `https://${MAGENTO_DOMAIN}/rest/V1/fsd/catalog_rule/price`,
       bodyContent,
       { headers: headers }
     );
@@ -185,7 +189,8 @@ const parseAndPopulateCSV = async (skuArray) => {
     await processRows(skuArray, start, Math.min(start + 1200, skuArray.length));
   }
 
-  console.log("first", DOC_REPO);
+  console.log("DOC REPO", DOC_REPO);
+  console.log("MAGENTO DOMAIN", MAGENTO_DOMAIN);
   console.log("All SKUs processed successfully.");
 };
 
@@ -635,6 +640,8 @@ const getCurrentPrice = ({
 
 // API Endpoint to receive SKUs and process them
 app.post("/process-skus", async (req, res) => {
+  DOC_REPO = "products_en-US_v8";
+  MAGENTO_DOMAIN = "www.foodservicedirect.com";
   try {
     const { skus } = req.body; // Expecting { skus: ["sku1", "sku2", "sku3", ...] }
 
@@ -658,6 +665,7 @@ app.post("/process-skus", async (req, res) => {
 app.post("/process-skus-staging", async (req, res) => {
   try {
     DOC_REPO = "products_en-US_stage_v2";
+    MAGENTO_DOMAIN = "mcstaging4.foodservicedirect.com";
     const { skus } = req.body; // Expecting { skus: ["sku1", "sku2", "sku3", ...] }
 
     if (!skus || !Array.isArray(skus) || skus.length === 0) {
