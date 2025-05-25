@@ -246,7 +246,9 @@ const processRows = async (rows, start, end) => {
       }
 
       gq_product = await getGQProduct(sku);
-      console.log(JSON.stringify(gq_product));
+      if (!gq_product?.sku) {
+        inactive_documents.push({ id: sku, is_active: false });
+      }
     } catch (err) {
       console.log(err);
       inactive_documents.push({ id: sku, is_active: false });
@@ -309,22 +311,30 @@ const processRows = async (rows, start, end) => {
   }
 
   try {
-    const res = await typesense
-      .collections(DOC_REPO)
-      .documents()
-      .import(documents, { action: "update", dirty_values: "coerce_or_drop" });
-    console.log("typesense response", res);
-    logToFile(
-      `SUCCESS: Uploaded ${
-        documents.length
-      } documents to Typesense \n ${JSON.stringify(documents)}`
-    );
+    console.log("inactive_documents length check", inactive_documents);
+    if (documents.length) {
+      const res = await typesense
+        .collections(DOC_REPO)
+        .documents()
+        .import(documents, {
+          action: "update",
+          dirty_values: "coerce_or_drop",
+        });
+      console.log("typesense response", res);
+      logToFile(
+        `SUCCESS: Uploaded ${
+          documents.length
+        } documents to Typesense \n ${JSON.stringify(documents)}`
+      );
+    }
   } catch (e) {
     logToFile(`ERROR: Failed to upload documents - ${e.message}`);
     console.log("typesense upload error", e);
   }
+
   if (inactive_documents.length > 0) {
     // @TEMP 7/6/2024
+    console.log("Inactive documents if block", inactive_documents);
     try {
       const res_inactive = await typesense
         .collections(DOC_REPO)
@@ -333,7 +343,7 @@ const processRows = async (rows, start, end) => {
           action: "update",
           dirty_values: "coerce_or_drop",
         });
-      console.log(res_inactive);
+      console.log("inactive response", res_inactive);
     } catch (e) {
       console.log(e);
     }
@@ -494,10 +504,12 @@ const convertToDoc = async (
       id: sku,
       index: configData?.swatch_information?.index || null,
       is_active:
-        gq.name != "" &&
-        mag.custom_attributes.find(
-          (at) => at.attribute_code === "fsd_product_reference"
-        )?.value != "",
+        !!(
+          gq.name != "" &&
+          mag.custom_attributes.find(
+            (at) => at.attribute_code === "fsd_product_reference"
+          )?.value != ""
+        ) && mag.is_saleable,
       is_in_stock: gq.is_in_stock,
       is_liquidation: is_liquidation,
       is_new_arrival: is_new_arrival,
@@ -666,6 +678,29 @@ app.post("/process-skus-staging", async (req, res) => {
   try {
     DOC_REPO = "products_en-US_stage_v2";
     MAGENTO_DOMAIN = "mcstaging4.foodservicedirect.com";
+    const { skus } = req.body; // Expecting { skus: ["sku1", "sku2", "sku3", ...] }
+
+    if (!skus || !Array.isArray(skus) || skus.length === 0) {
+      return res.status(400).json({ error: "Invalid or empty SKUs array" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "SKUs processing started successfully.==>" + skus });
+    // return;
+    parseAndPopulateCSV(skus);
+
+    // console.log(skus);
+  } catch (error) {
+    console.error("Error processing SKUs:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/process-skus-migration", async (req, res) => {
+  try {
+    DOC_REPO = "products_en-US_v8";
+    MAGENTO_DOMAIN = "migration.foodservicedirect.us";
     const { skus } = req.body; // Expecting { skus: ["sku1", "sku2", "sku3", ...] }
 
     if (!skus || !Array.isArray(skus) || skus.length === 0) {
