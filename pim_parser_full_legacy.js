@@ -25,7 +25,7 @@ const TYPESENSE_CONFIG = {
 
 const typesense = new Typesense.Client(TYPESENSE_CONFIG);
 
-let MAGENTO_DOMAIN = "www.foodservicedirect.com"; //"migration.foodservicedirect.us"; //"mcstaging4.foodservicedirect.com";
+let MAGENTO_DOMAIN = "https://magento.foodservicedirect.com"; //"migration.foodservicedirect.us"; //"mcstaging4.foodservicedirect.com";
 const sales_data = [];
 let sales_data_status = "";
 const getGQProduct = async (id) => {
@@ -509,7 +509,7 @@ const convertToDoc = async (
           mag.custom_attributes.find(
             (at) => at.attribute_code === "fsd_product_reference"
           )?.value != ""
-        ) && mag.is_saleable,
+        ) && magfsd?.is_saleable,
       is_in_stock: gq.is_in_stock,
       is_liquidation: is_liquidation,
       is_new_arrival: is_new_arrival,
@@ -653,7 +653,7 @@ const getCurrentPrice = ({
 // API Endpoint to receive SKUs and process them
 app.post("/process-skus", async (req, res) => {
   DOC_REPO = "products_en-US_v8";
-  MAGENTO_DOMAIN = "www.foodservicedirect.com";
+  MAGENTO_DOMAIN = "magento.foodservicedirect.com";
   try {
     const { skus } = req.body; // Expecting { skus: ["sku1", "sku2", "sku3", ...] }
 
