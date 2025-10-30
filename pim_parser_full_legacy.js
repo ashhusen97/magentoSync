@@ -14,13 +14,13 @@ const MAG_TOKEN = "j0l7it2zcd7u2c91qtli4tcwy8o1kvpl";
 const TYPESENSE_CONFIG = {
   nodes: [
     {
-      host: "canada.paperhouse.com",
-      port: 8108,
+      host: "global-typesense.foodservicedirect.us",
+      port: 443,
       path: "",
-      protocol: "http",
+      protocol: "https",
     },
   ],
-  apiKey: "1eDMDj6SeFmrTTwUGprBxEGjF4aGfK59Pt0j36fr1lkF8BO2",
+  apiKey: "TWqNb7j32HEEVTliB5EB8VUjZXGladn0XAjrAZ0hiD2Ucum8",
 };
 
 const typesense = new Typesense.Client(TYPESENSE_CONFIG);
@@ -246,6 +246,7 @@ const processRows = async (rows, start, end) => {
       }
 
       gq_product = await getGQProduct(sku);
+      console.log(gq_product);
       if (!gq_product?.sku) {
         inactive_documents.push({ id: sku, is_active: false });
       }
@@ -317,7 +318,7 @@ const processRows = async (rows, start, end) => {
         .collections(DOC_REPO)
         .documents()
         .import(documents, {
-          action: "update",
+          action: "upsert",
           dirty_values: "coerce_or_drop",
         });
       console.log("typesense response", res);
@@ -463,6 +464,22 @@ const convertToDoc = async (
     )?.value;
     const ship_temp =
       ship_temp_code == "130" ? "F" : ship_temp_code == "127" ? "R" : "D";
+
+    const pdf_file_title = mag.custom_attributes.find(
+      (at) => at.attribute_code === "spec_pdf_file_name"
+    )?.value;
+    const pdf_source = mag.custom_attributes.find(
+      (at) => at.attribute_code === "spec_pdf_source"
+    )?.value;
+
+    let media_files = [];
+    if (pdf_source) {
+      media_files.push({
+        title: pdf_file_title,
+        type: "pdf",
+        url: pdf_source,
+      });
+    }
     const doc = {
       attributes: {
         dimension_unit: "IN",
@@ -488,6 +505,18 @@ const convertToDoc = async (
 
       bulk_each: configData?.swatch_information?.bulk_each || null,
       catalog_rule_price: mag_catalog_rule_price,
+      category_l1:
+        mag.custom_attributes.find((at) => at.attribute_code === "category_l1")
+          ?.value || null,
+      category_l2:
+        mag.custom_attributes.find((at) => at.attribute_code === "category_l2")
+          ?.value || null,
+      category_l3:
+        mag.custom_attributes.find((at) => at.attribute_code === "category_l3")
+          ?.value || null,
+      category_l4:
+        mag.custom_attributes.find((at) => at.attribute_code === "category_l4")
+          ?.value || null,
       configAttributes:
         cleanConfigAttributes(configData?.swatch_information?.attributes) ||
         null,
@@ -523,9 +552,9 @@ const convertToDoc = async (
       manufacturer: manufacturer,
       max_sale_qty:
         Number(mag?.extension_attributes?.stock_item?.max_sale_qty) || 2000,
+      media_files: media_files,
       min_sale_qty:
         Number(mag?.extension_attributes?.stock_item?.min_sale_qty) || 1,
-
       name: gq.name,
       new_arrivals_expiry_date: gq.new_arrivals_expiry_date || "",
       options: magfsd?.options || null,
@@ -534,7 +563,6 @@ const convertToDoc = async (
       parent_sku: magfsd?.sku || null,
       platform_id: magfsd?.platform_id,
       price: Number(mag.price),
-
       product_id: mag.custom_attributes.find(
         (at) => at.attribute_code === "fsd_product_reference"
       )?.value,
@@ -552,7 +580,10 @@ const convertToDoc = async (
       shipping_type:
         String(magfsd?.shipping_type) || String(gq.shipping_type) || "",
       sku: sku,
-      slug: String(gq.url).substring(Math.min(34, String(gq.url).length)),
+      slug:
+        mag.custom_attributes.find((at) => at.attribute_code === "url_key")
+          ?.value + ".html",
+      sold_as: gq.sold_as,
       source: "pim",
       sort_price: current_price,
       special_price: current_price,
@@ -676,7 +707,8 @@ app.post("/process-skus", async (req, res) => {
 
 app.post("/process-skus-staging", async (req, res) => {
   try {
-    DOC_REPO = "products_en-US_stage_v2";
+    DOC_REPO = "products_en-US_v11_copy";
+
     MAGENTO_DOMAIN = "mcstaging4.foodservicedirect.com";
     const { skus } = req.body; // Expecting { skus: ["sku1", "sku2", "sku3", ...] }
 
@@ -699,7 +731,7 @@ app.post("/process-skus-staging", async (req, res) => {
 
 app.post("/process-skus-migration", async (req, res) => {
   try {
-    DOC_REPO = "products_en-US_v8";
+    DOC_REPO = "products_en-US_v11_copy";
     MAGENTO_DOMAIN = "migration.foodservicedirect.us";
     const { skus } = req.body; // Expecting { skus: ["sku1", "sku2", "sku3", ...] }
 
