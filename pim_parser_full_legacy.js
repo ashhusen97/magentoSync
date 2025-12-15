@@ -39,7 +39,6 @@ const getGQProduct = async (id) => {
     query: `{
       products :product_details(skus_comma_separated:"${id}"){
             sku
-            vendor_id
             image
             name
             price
@@ -59,9 +58,7 @@ const getGQProduct = async (id) => {
             sold_as
             shipping_type
             ships_in_days
-            mp_special_price
-            mp_special_from_date
-            mp_special_to_date
+           
             stock_type
           }
         }`,
